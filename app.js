@@ -8,25 +8,40 @@ app.set('view engine', 'ejs');
 app.use(bodyparser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-mongoose.connect("mongoose://localhost: 27017/todolistDB");
+mongoose.connect("mongodb://localhost:27017/TodolistDB");
 
 const itemsSheama = {
-    names: String
+    "name": String
 }
-const Item  = mongoose.model('item', itemsSheama);
+const Item = mongoose.model('item', itemsSheama);
 
 const item1 = new Item({
     name: 'test of the db'
 });
 
 let itemsArray = [item1];
-Item.insertMany(itemsArray, ()=>{
-    console.log('insertion error');
+
+// Item.insertMany(itemsArray, (error)=>{
+//     if(error) console.log(error);
+//     else console.log('insertion sucessful');
+// });
+
+let list = [];
+
+Item.find((err, res) => {
+    if (err) console.log(err);
+    else {
+        res.forEach((i) => {
+            list.push(i.name);
+        });
+        console.log(list);
+    }
 });
+
 
 // web stuff beond
 app.get("/", (req, res) => {
-    res.render('list', { id: "Todo", date: date.getdate(), newListItem: item });
+    res.render('list', { id: "Todo", date: date.getdate(), newListItem: list });
 });
 
 
@@ -35,14 +50,24 @@ app.get("/work", (req, res) => {
 });
 
 app.post("/", (req, res) => {
-    if (req.body.newItem != "" && req.body.button == "Todo") {
-        item.push(req.body.newItem);
+    if (req.body.newItem != "") {
+        list.push(req.body.newItem);
+        Item.insertMany([{name: req.body.newItem}], (error) => {
+            if (error) console.log(error);
+            else console.log('insertion sucessful');
+        });
         res.redirect("/");
     }
-    else if (req.body.newItem != "" && req.body.button == "Work") {
-        work.push(req.body.newItem);
-        res.redirect("/work");
+    else if( req.body.hasOwnProperty("button") && req.body.newItem == "") res.redirect('/');
+    if(req.body.hasOwnProperty("reset")){
+        list = [];
+        Item.deleteMany({}, (err)=>{
+            if(err) console.log(err);
+            else console.log("all removed");
+        });
+        res.redirect("/");
     }
+
 });
 
 
